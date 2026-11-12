@@ -57,7 +57,7 @@ export function ConnectivityTest() {
       const results: DeviceResult[] = Array.from(known.entries()).map(([deviceId, zoneId]) => {
         const seen = teleMap.get(deviceId);
         const lastSeenSec = seen ? Math.floor((now - new Date(seen).getTime()) / 1000) : null;
-        const online = lastSeenSec != null && lastSeenSec <= 15;
+        const online = lastSeenSec != null && lastSeenSec <= 45;
         return {
           deviceId,
           zoneId,

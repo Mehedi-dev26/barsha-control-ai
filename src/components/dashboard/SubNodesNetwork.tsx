@@ -19,7 +19,7 @@ type Telemetry = {
   rssi: number | null; updated_at: string; soil_connected: boolean | null;
 };
 
-const ONLINE_MS = 15000;
+const ONLINE_MS = 45000;
 const BACKEND_HOST = "https://project--583e7123-43a5-4b02-9812-0f73d31e5ee2-dev.lovable.app";
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
 
@@ -72,9 +72,13 @@ export function SubNodesNetwork({ showAddButton = true, showSummary = true, show
   }, [user]);
 
   useEffect(() => {
-    supabase.from("device_telemetry").select("*").then(({ data }) => {
-      if (data) setTele(Object.fromEntries((data as Telemetry[]).map((t) => [t.device_id, t])));
-    });
+    const fetchTele = () => {
+      supabase.from("device_telemetry").select("*").then(({ data }) => {
+        if (data) setTele(Object.fromEntries((data as Telemetry[]).map((t) => [t.device_id, t])));
+      });
+    };
+    fetchTele();
+    const interval = setInterval(fetchTele, 4000);
     const ch = supabase.channel("subnodes_live")
       .on("postgres_changes", { event: "*", schema: "public", table: "device_telemetry" },
         (payload) => {
@@ -82,7 +86,10 @@ export function SubNodesNetwork({ showAddButton = true, showSummary = true, show
           if (row?.device_id) setTele((p) => ({ ...p, [row.device_id]: row }));
         })
       .subscribe();
-    return () => { supabase.removeChannel(ch); };
+    return () => {
+      clearInterval(interval);
+      supabase.removeChannel(ch);
+    };
   }, []);
 
   const reloadNodes = async () => {
@@ -245,12 +252,12 @@ export function SubNodesNetwork({ showAddButton = true, showSummary = true, show
           {nodes.map((n, i) => {
             const t = tele[n.device_id];
             const online = !!(t && Date.now() - new Date(t.updated_at).getTime() < ONLINE_MS);
-            const moisture = online ? Math.max(0, Math.min(100, Number(t?.soil_moisture ?? 0))) : 0;
+            const moisture = Math.max(0, Math.min(100, Number(t?.soil_moisture ?? 0)));
             const sMoist = moisture;
             const derived = sMoist < 25 ? sMoist * 0.6
               : sMoist < 60 ? 15 + (sMoist - 25) * (55 / 35)
               : 70 + (sMoist - 60) * (30 / 40);
-            const waterLevel = online && t?.water_level != null ? Math.max(0, Math.min(100, Number(t.water_level))) : (online ? derived : 0);
+            const waterLevel = t?.water_level != null ? Math.max(0, Math.min(100, Number(t.water_level))) : derived;
             const valveOpen = online && !!t?.valve_open;
             const soilConnected = online ? (t?.soil_connected == null ? true : !!t.soil_connected) : true;
             const assignedZone = zones.find((z) => z.id === n.zone_id);
@@ -432,12 +439,12 @@ export function SubNodesNetwork({ showAddButton = true, showSummary = true, show
                         <span className="font-semibold truncate">{n.label}</span>
                         <span className="font-mono text-[10px] text-muted-foreground">{n.device_id}</span>
                       </span>
-                      <span className="font-extrabold tabular-nums">{online ? `${bn(sm.toFixed(0))}%` : "—"}</span>
+                      <span className="font-extrabold tabular-nums">{sm > 0 ? `${bn(sm.toFixed(0))}%` : (online ? "০%" : "—")}</span>
                     </div>
                     <div className="h-2 rounded-full bg-muted overflow-hidden">
                       <div
-                        className={`h-full rounded-full bg-gradient-to-r ${tone(sm)} transition-all`}
-                        style={{ width: online ? `${Math.max(2, sm)}%` : "0%" }}
+                        className={`h-full rounded-full bg-gradient-to-r ${tone(sm)} transition-all ${!online ? "opacity-60" : ""}`}
+                        style={{ width: `${Math.max(2, sm)}%` }}
                       />
                     </div>
                   </div>
@@ -462,12 +469,12 @@ export function SubNodesNetwork({ showAddButton = true, showSummary = true, show
                         <span className="font-semibold truncate">{n.label}</span>
                         <span className="font-mono text-[10px] text-muted-foreground">{n.device_id}</span>
                       </span>
-                      <span className="font-extrabold tabular-nums">{online ? `${bn(wl.toFixed(0))}%` : "—"}</span>
+                      <span className="font-extrabold tabular-nums">{wl > 0 ? `${bn(wl.toFixed(0))}%` : (online ? "০%" : "—")}</span>
                     </div>
                     <div className="h-2 rounded-full bg-muted overflow-hidden">
                       <div
-                        className="h-full rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-teal-500 transition-all"
-                        style={{ width: online ? `${Math.max(2, wl)}%` : "0%" }}
+                        className={`h-full rounded-full bg-gradient-to-r from-sky-500 via-cyan-500 to-teal-500 transition-all ${!online ? "opacity-60" : ""}`}
+                        style={{ width: `${Math.max(2, wl)}%` }}
                       />
                     </div>
                   </div>

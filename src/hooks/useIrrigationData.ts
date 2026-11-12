@@ -73,8 +73,8 @@ export const PUMP_SPEC = {
   ratedVoltage: 6.0,
   ratedCurrent: 0.20,
   ratedFlowLpm: 2.0,
-  heartbeatMs: 15000,      // sub-node grace window
-  motorOfflineMs: 30000,   // পাম্প এর জন্য আলাদা grace — hotspot lag এ flicker রোধ
+  heartbeatMs: 45000,      // sub-node grace window (45s for stable IoT connection)
+  motorOfflineMs: 60000,   // পাম্প এর জন্য 60s grace — hotspot lag এ flicker রোধ
 };
 
 // 💧 ট্যাংক লেভেল সিমুলেশন — পাম্প চালু থাকলে ৪০–৮০% smooth oscillation
@@ -148,11 +148,8 @@ const recomputeMetrics = (zones: FieldZone[] = state.zones) => {
 
 const applyTelemetry = (row: TelemetryRow) => {
   const ts = new Date(row.updated_at).getTime();
-  // ⚡ Drop stale rows on hydrate — device hasn't pinged within heartbeat window.
-  // Without this, opening the dashboard after the device has been offline for hours
-  // would briefly flash the last cached 100% reading before the watchdog zeroed it.
-  if (Date.now() - ts > PUMP_SPEC.heartbeatMs) return;
-
+  // Drop invalid timestamp or exceedingly old data (> 7 days)
+  if (isNaN(ts) || Date.now() - ts > 7 * 24 * 3600 * 1000) return;
 
   const tNum = row.temperature != null ? Number(row.temperature) : null;
   const hNum = row.humidity != null ? Number(row.humidity) : null;
@@ -171,11 +168,12 @@ const applyTelemetry = (row: TelemetryRow) => {
   if (row.zone_id === PUMP_SPEC.zone_id) {
     const wasOnline = state.motor.online;
     const wasOn = state.motor.isOn;
+    const isNowOnline = Date.now() - ts <= PUMP_SPEC.motorOfflineMs;
     // 🚿 সেন্সর সমস্যার কারণে raw water_level ব্যবহার না করে UI-simulated (৪০–৬০%)
     const tank = simulatedTankLevel(!!row.motor_on);
     const motor: MotorState = {
       ...state.motor,
-      isOn: !!row.motor_on, online: true, lastSeen: ts,
+      isOn: !!row.motor_on, online: isNowOnline, lastSeen: ts,
       voltage: Number(row.voltage ?? (row.motor_on ? PUMP_SPEC.ratedVoltage : 0)),
       current: Number(row.current ?? (row.motor_on ? PUMP_SPEC.ratedCurrent : 0)),
       flowRate: Number(row.flow_lpm ?? (row.motor_on ? PUMP_SPEC.ratedFlowLpm : 0)),
@@ -185,20 +183,16 @@ const applyTelemetry = (row: TelemetryRow) => {
       tankLevel: tank,
     };
     setState({ ...state, motor, weather });
-    if (!wasOnline) pushActivity({ type: "success", message: "✓ পাম্প অনলাইন · মাস্টার নোড সংযুক্ত" });
+    if (!wasOnline && isNowOnline) pushActivity({ type: "success", message: "✓ পাম্প অনলাইন · মাস্টার নোড সংযুক্ত" });
     if (wasOn !== motor.isOn) pushActivity({ type: motor.isOn ? "success" : "info", message: `পাম্প ${motor.isOn ? "চালু" : "বন্ধ"} হলো (হার্ডওয়্যার নিশ্চিতকরণ)` });
     return;
   }
 
   // Sub-node → match to a registered field by zone_id
+  const isNowOnline = Date.now() - ts <= PUMP_SPEC.heartbeatMs;
   const zones = state.zones.map((z) => {
     if (z.id !== row.zone_id) return z;
     const sm = row.soil_moisture != null ? Number(row.soil_moisture) : z.soilMoisture;
-    // Water level derived from SM (Soil Moisture, YL-69) reading:
-    //   - <25% → severely dry (0–15% water column)
-    //   - 25–60% → optimal growing (gentle slope)
-    //   - >60% → saturated (asymptotic toward 100%)
-    // Formula: smooth piecewise mapping so the gauge tracks moisture, not a random number
     const sMoist = Math.max(0, Math.min(100, sm));
     const derived =
       sMoist < 25 ? sMoist * 0.6                       // 0 → 0 ... 25 → 15
@@ -208,7 +202,7 @@ const applyTelemetry = (row: TelemetryRow) => {
     const valve = row.valve_open ?? z.valveOpen;
     const status: FieldZone["status"] = sm < 25 ? "alert" : valve ? "irrigating" : "idle";
     const soilConnected = row.soil_connected == null ? true : !!row.soil_connected;
-    return { ...z, soilMoisture: sm, waterLevel: wl, valveOpen: !!valve, status, online: true, lastSeen: ts, soilConnected };
+    return { ...z, soilMoisture: sm, waterLevel: wl, valveOpen: !!valve, status, online: isNowOnline, lastSeen: ts, soilConnected };
   });
 
   setState({ ...state, zones, weather, metrics: recomputeMetrics(zones) });
@@ -223,27 +217,25 @@ if (typeof window !== "undefined") {
       const now = Date.now();
       let changed = false;
       let next = state;
-      // motor offline? — আলাদা longer grace, hotspot lag এ flicker রোধ
+      // motor offline? — ৬০ সেকেন্ড গ্রেস পিরিয়ড
       if (next.motor.lastSeen && now - next.motor.lastSeen > PUMP_SPEC.motorOfflineMs && next.motor.online) {
         pushActivity({ type: "warning", message: "⚠ পাম্প অফলাইন · heartbeat বিচ্ছিন্ন" });
-        next = { ...next, motor: { ...next.motor, online: false, isOn: false, voltage: 0, current: 0, flowRate: 0, pressure: 0, health: 0, tankLevel: 0, runtime: 0 } };
+        // ড্যাশবোর্ড ব্ল্যাংক না করে সর্বশেষ স্টেট সংরক্ষণ রেখে কেবল অফলাইন মার্ক করা হচ্ছে
+        next = { ...next, motor: { ...next.motor, online: false } };
         changed = true;
       } else if (next.motor.online) {
         // 💧 প্রতি সেকেন্ডে ট্যাংক লেভেল smoothly update (৪০–৬০% simulated)
         next = { ...next, motor: { ...next.motor, tankLevel: simulatedTankLevel(next.motor.isOn) } };
         changed = true;
       }
-      // zone offline? → zero out all sensor readings (no fake stale data)
+      // zone offline? — ৪৫ সেকেন্ড গ্রেস পিরিয়ড, ডাটা জিরো না করে লাস্ট ভ্যালু সংরক্ষণ
       const zones = next.zones.map((z) => {
         const stale = z.lastSeen && now - z.lastSeen > PUMP_SPEC.heartbeatMs;
         if (z.online && stale) {
           changed = true;
-          return { ...z, online: false, soilMoisture: 0, waterLevel: 0, valveOpen: false, status: "idle" as const, soilConnected: true };
+          return { ...z, online: false, status: "idle" as const };
         }
         // 🌱 Client-side per-second decay while soil sensor is disconnected.
-        //    Rates match the server (soil 1%/s, water 0.5%/s; halved during irrigation
-        //    so open-valve loss is offset). Server pushes the authoritative value
-        //    every ~2s and will overwrite this smoothly.
         if (z.online && !z.soilConnected) {
           const soilRate = z.valveOpen ? 0.2 : 1.0;
           const waterRate = z.valveOpen ? 0.1 : 0.5;
@@ -254,20 +246,15 @@ if (typeof window !== "undefined") {
             return { ...z, soilMoisture: newSoil, waterLevel: newWater };
           }
         }
-        // Defensive: even if never marked online but has stale/no data, force zeros
-        if (!z.online && (z.soilMoisture !== 0 || z.waterLevel !== 0 || z.valveOpen)) {
-          changed = true;
-          return { ...z, soilMoisture: 0, waterLevel: 0, valveOpen: false, status: "idle" as const, soilConnected: true };
-        }
         return z;
       });
       if (changed) next = { ...next, zones };
 
-      // ⚡ Weather (DHT): যখন source sub-node বা master offline → তাপমাত্রা/আর্দ্রতা 0
+      // ⚡ Weather (DHT): যখন source sub-node বা master offline
       const wStale = next.weather.lastSeen && now - next.weather.lastSeen > PUMP_SPEC.heartbeatMs;
       const anyOnline = next.motor.online || zones.some((z) => z.online);
-      if ((wStale || !anyOnline) && (next.weather.temperature !== 0 || next.weather.humidity !== 0 || next.weather.lastSeen !== null)) {
-        next = { ...next, weather: { temperature: 0, humidity: 0, sourceZone: null, lastSeen: null } };
+      if (wStale && !anyOnline && next.weather.lastSeen !== null) {
+        next = { ...next, weather: { ...next.weather, lastSeen: null } };
         changed = true;
       }
 
@@ -416,27 +403,79 @@ const toggleMotor = async () => {
 const subscribe = (l: () => void) => { listeners.add(l); return () => { listeners.delete(l); }; };
 const getSnapshot = () => state;
 
-let bootstrapped = false;
-function useBootstrap() {
-  useEffect(() => {
-    if (bootstrapped) return;
-    bootstrapped = true;
-    loadFields();
-    loadAiActivity();
-    const ch = supabase
+const syncTelemetry = async () => {
+  try {
+    const { data: tel, error } = await supabase
+      .from("device_telemetry")
+      .select("*")
+      .order("updated_at", { ascending: true });
+    if (!error && tel && tel.length > 0) {
+      tel.forEach((t) => applyTelemetry(t as TelemetryRow));
+    }
+  } catch (err) {
+    console.warn("[Telemetry] Poll sync error:", err);
+  }
+};
+
+let globalSyncStarted = false;
+function startGlobalSync() {
+  if (globalSyncStarted || typeof window === "undefined") return;
+  globalSyncStarted = true;
+
+  loadFields();
+  loadAiActivity();
+
+  // 1. Regular 4-second REST polling fallback (guarantees continuous live updates even if WebSocket drops)
+  window.setInterval(() => {
+    syncTelemetry();
+  }, 4000);
+
+  // 2. Immediate re-sync when tab gains focus or visibility changes
+  const onFocusOrVisible = () => {
+    if (document.visibilityState === "visible") {
+      syncTelemetry();
+      loadAiActivity();
+    }
+  };
+  window.addEventListener("visibilitychange", onFocusOrVisible);
+  window.addEventListener("focus", onFocusOrVisible);
+
+  // 3. Supabase Realtime WebSocket subscription with auto-reconnect fallback
+  const subscribeRealtime = () => {
+    supabase
       .channel("device_telemetry_live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "device_telemetry" },
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "device_telemetry" },
         (payload) => {
           const row = (payload.new ?? payload.old) as TelemetryRow | undefined;
           if (row) applyTelemetry(row);
-        })
-      .subscribe();
-    const cmdCh = supabase
+        }
+      )
+      .subscribe((status) => {
+        if (status === "CHANNEL_ERROR" || status === "TIMED_OUT" || status === "CLOSED") {
+          console.warn("[Realtime] Telemetry channel issue (" + status + "). Triggering fallback poll.");
+          syncTelemetry();
+        }
+      });
+
+    supabase
       .channel("device_commands_live")
-      .on("postgres_changes", { event: "*", schema: "public", table: "device_commands" },
-        () => loadAiActivity())
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "device_commands" },
+        () => loadAiActivity()
+      )
       .subscribe();
-    return () => { supabase.removeChannel(ch); supabase.removeChannel(cmdCh); bootstrapped = false; };
+  };
+
+  subscribeRealtime();
+}
+
+function useBootstrap() {
+  useEffect(() => {
+    startGlobalSync();
+    // Do not teardown channels on component unmount to prevent dashboard drop!
   }, []);
 }
 
