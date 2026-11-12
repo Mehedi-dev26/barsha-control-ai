@@ -1,5 +1,6 @@
 import { Sprout, Droplets, Workflow, CloudRain, Calendar, Wrench, Bell, FlaskConical, Sparkles } from "lucide-react";
 import { Link } from "@tanstack/react-router";
+import { useAuth } from "@/hooks/useAuth";
 
 const actions = [
   { label: "জমি", desc: "প্লট দেখুন", icon: Sprout, to: "/zones", from: "from-emerald-500", toColor: "to-green-600", ring: "ring-emerald-500/30" },
@@ -13,6 +14,9 @@ const actions = [
 ];
 
 export function QuickActions() {
+  const { isAdmin } = useAuth();
+  const visibleActions = isAdmin ? actions : actions.filter((action) => action.to !== "/hardware");
+
   return (
     <div className="glass-card rounded-2xl p-4 sm:p-5">
       <div className="flex items-center justify-between mb-3">
@@ -20,10 +24,10 @@ export function QuickActions() {
           <h2 className="text-base font-bold">দ্রুত কার্যাবলী</h2>
           <p className="text-xs text-muted-foreground">প্রায়ই ব্যবহৃত নিয়ন্ত্রণসমূহ · AI-চালিত সূচি অপটিমাইজেশন সহ</p>
         </div>
-        <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-1 rounded-full">{"৮"}টি শর্টকাট</span>
+        <span className="text-[10px] text-muted-foreground bg-secondary px-2 py-1 rounded-full">{visibleActions.length === 8 ? "৮" : "৭"}টি শর্টকাট</span>
       </div>
       <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-2.5">
-        {actions.map((a) => (
+        {visibleActions.map((a) => (
           <Link
             key={a.label}
             to={a.to}

@@ -16,21 +16,32 @@ export function useAuth() {
     const { data: sub } = supabase.auth.onAuthStateChange((_event, s) => {
       setSession(s);
       setUser(s?.user ?? null);
-      setLoading(false);
+      setLoading(Boolean(s?.user));
     });
     return () => sub.subscription.unsubscribe();
   }, []);
 
   useEffect(() => {
-    if (!user) { setProfile(null); setRoles([]); return; }
+    if (!user) {
+      setProfile(null);
+      setRoles([]);
+      setLoading(false);
+      return;
+    }
+    let active = true;
+    setLoading(true);
     (async () => {
       const [{ data: p }, { data: r }] = await Promise.all([
         supabase.from("profiles").select("*").eq("id", user.id).maybeSingle(),
         supabase.from("user_roles").select("role").eq("user_id", user.id),
       ]);
-      setProfile(p as Profile | null);
-      setRoles(((r ?? []) as { role: Role }[]).map((x) => x.role));
+      if (active) {
+        setProfile(p as Profile | null);
+        setRoles(((r ?? []) as { role: Role }[]).map((x) => x.role));
+        setLoading(false);
+      }
     })();
+    return () => { active = false; };
   }, [user]);
 
   return {

@@ -67,12 +67,12 @@ function AuthPage() {
             প্রবেশের জন্য অনুমোদিত ইমেইল ও পাসওয়ার্ড প্রদান করুন। অননুমোদিত একাউন্টে প্রবেশাধিকার নেই।
           </p>
 
-          <form onSubmit={submit} className="space-y-3.5 mt-6">
+          <form onSubmit={submit} autoComplete="off" className="space-y-3.5 mt-6">
             <div>
               <label className="text-xs font-semibold text-muted-foreground">অনুমোদিত ইমেইল</label>
               <div className="mt-1 relative">
                 <Mail className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="email"
+                <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} autoComplete="off"
                   className="w-full h-11 pl-10 pr-3 rounded-xl border border-border bg-background/70 focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm" placeholder="admin@example.com" />
               </div>
             </div>
@@ -80,7 +80,7 @@ function AuthPage() {
               <label className="text-xs font-semibold text-muted-foreground">পাসওয়ার্ড</label>
               <div className="mt-1 relative">
                 <Lock className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="current-password"
+                <input type="password" required value={password} onChange={(e) => setPassword(e.target.value)} autoComplete="new-password"
                   className="w-full h-11 pl-10 pr-3 rounded-xl border border-border bg-background/70 focus:outline-none focus:ring-2 focus:ring-primary/30 text-sm" placeholder="••••••••" />
               </div>
             </div>
