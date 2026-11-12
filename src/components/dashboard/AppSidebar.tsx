@@ -70,7 +70,7 @@ export function AppSidebar() {
   const handleLogout = async () => {
     await signOut();
     toast.success("সফলভাবে লগ আউট হয়েছেন");
-    navigate({ to: "/" });
+    navigate({ to: "/auth", replace: true });
   };
 
   const itemCls =
@@ -112,7 +112,9 @@ export function AppSidebar() {
         <SidebarGroup>
           {!collapsed && <SidebarGroupLabel className="text-[11px] uppercase tracking-wider font-bold text-sidebar-foreground/70 px-2 mb-1">প্রধান</SidebarGroupLabel>}
           <SidebarGroupContent>
-            <SidebarMenu className="gap-1.5">{mainItems.map(renderItem)}</SidebarMenu>
+            <SidebarMenu className="gap-1.5">
+              {mainItems.filter((item) => item.url !== "/hardware" || roles.includes("admin")).map(renderItem)}
+            </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 

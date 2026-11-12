@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { DashboardLayout } from "@/components/dashboard/DashboardLayout";
 import {
   Cpu, Droplets, Sun, Thermometer, Waves, Zap, Cable, CircuitBoard, Wifi,
@@ -6,6 +6,8 @@ import {
   FlaskConical, RotateCw, Globe, ArrowRight, Sprout,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Loader2 } from "lucide-react";
+import { useAuth } from "@/hooks/useAuth";
 import masterFirmwareSource from "../../device-firmware/esp32_bmda.ino?raw";
 
 const bn = (s: string | number) => String(s).replace(/[0-9]/g, (d) => "০১২৩৪৫৬৭৮৯"[+d]);
@@ -1115,8 +1117,25 @@ const BACKEND_HOST = "https://cplhurjwjmybbavkydfv.functions.supabase.co";
 const TELEMETRY_PATH = "/telemetry";
 
 function HardwarePage() {
+  const { isAdmin, loading } = useAuth();
+  const navigate = useNavigate();
   const [copied, setCopied] = useState<string | null>(null);
   const [viewOrigin, setViewOrigin] = useState<string>("");
+
+  useEffect(() => {
+    if (!loading && !isAdmin) navigate({ to: "/app", replace: true });
+  }, [isAdmin, loading, navigate]);
+
+  if (loading || !isAdmin) {
+    return (
+      <div className="min-h-screen grid place-items-center">
+        <div className="flex items-center gap-3 text-muted-foreground">
+          <Loader2 className="h-5 w-5 animate-spin text-primary" />
+          <span className="text-sm font-medium">অ্যাডমিন অনুমতি যাচাই হচ্ছে…</span>
+        </div>
+      </div>
+    );
+  }
   useEffect(() => {
     if (typeof window !== "undefined") setViewOrigin(window.location.origin);
   }, []);
