@@ -17,6 +17,8 @@ import { Route as AppRouteImport } from './routes/app'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as BillingRouteImport } from './routes/billing'
 import { Route as DevicesRouteImport } from './routes/devices'
+import { Route as FarmerRouteImport } from './routes/farmer'
+import { Route as FarmersRouteImport } from './routes/farmers'
 import { Route as ForecastRouteImport } from './routes/forecast'
 import { Route as GpsRouteImport } from './routes/gps'
 import { Route as HardwareRouteImport } from './routes/hardware'
@@ -68,6 +70,16 @@ const BillingRoute = BillingRouteImport.update({
 const DevicesRoute = DevicesRouteImport.update({
   id: '/devices',
   path: '/devices',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FarmerRoute = FarmerRouteImport.update({
+  id: '/farmer',
+  path: '/farmer',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FarmersRoute = FarmersRouteImport.update({
+  id: '/farmers',
+  path: '/farmers',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForecastRoute = ForecastRouteImport.update({
@@ -140,6 +152,8 @@ export interface FileRoutesByFullPath {
   '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
   '/devices': typeof DevicesRoute
+  '/farmer': typeof FarmerRoute
+  '/farmers': typeof FarmersRoute
   '/forecast': typeof ForecastRoute
   '/gps': typeof GpsRoute
   '/hardware': typeof HardwareRoute
@@ -162,6 +176,8 @@ export interface FileRoutesByTo {
   '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
   '/devices': typeof DevicesRoute
+  '/farmer': typeof FarmerRoute
+  '/farmers': typeof FarmersRoute
   '/forecast': typeof ForecastRoute
   '/gps': typeof GpsRoute
   '/hardware': typeof HardwareRoute
@@ -185,6 +201,8 @@ export interface FileRoutesById {
   '/auth': typeof AuthRoute
   '/billing': typeof BillingRoute
   '/devices': typeof DevicesRoute
+  '/farmer': typeof FarmerRoute
+  '/farmers': typeof FarmersRoute
   '/forecast': typeof ForecastRoute
   '/gps': typeof GpsRoute
   '/hardware': typeof HardwareRoute
@@ -209,6 +227,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/billing'
     | '/devices'
+    | '/farmer'
+    | '/farmers'
     | '/forecast'
     | '/gps'
     | '/hardware'
@@ -231,6 +251,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/billing'
     | '/devices'
+    | '/farmer'
+    | '/farmers'
     | '/forecast'
     | '/gps'
     | '/hardware'
@@ -253,6 +275,8 @@ export interface FileRouteTypes {
     | '/auth'
     | '/billing'
     | '/devices'
+    | '/farmer'
+    | '/farmers'
     | '/forecast'
     | '/gps'
     | '/hardware'
@@ -276,6 +300,8 @@ export interface RootRouteChildren {
   AuthRoute: typeof AuthRoute
   BillingRoute: typeof BillingRoute
   DevicesRoute: typeof DevicesRoute
+  FarmerRoute: typeof FarmerRoute
+  FarmersRoute: typeof FarmersRoute
   ForecastRoute: typeof ForecastRoute
   GpsRoute: typeof GpsRoute
   HardwareRoute: typeof HardwareRoute
@@ -346,6 +372,20 @@ declare module '@tanstack/react-router' {
       path: '/devices'
       fullPath: '/devices'
       preLoaderRoute: typeof DevicesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/farmer': {
+      id: '/farmer'
+      path: '/farmer'
+      fullPath: '/farmer'
+      preLoaderRoute: typeof FarmerRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/farmers': {
+      id: '/farmers'
+      path: '/farmers'
+      fullPath: '/farmers'
+      preLoaderRoute: typeof FarmersRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/forecast': {
@@ -444,6 +484,8 @@ const rootRouteChildren: RootRouteChildren = {
   AuthRoute: AuthRoute,
   BillingRoute: BillingRoute,
   DevicesRoute: DevicesRoute,
+  FarmerRoute: FarmerRoute,
+  FarmersRoute: FarmersRoute,
   ForecastRoute: ForecastRoute,
   GpsRoute: GpsRoute,
   HardwareRoute: HardwareRoute,

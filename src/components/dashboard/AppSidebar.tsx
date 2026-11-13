@@ -1,7 +1,7 @@
 import { Link, useRouterState, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard, Map, Droplets, Gauge, Sparkles, BarChart3, Bell,
-  Settings, Cpu, LogOut, History, Receipt, Network, Satellite, Brain, MapPin,
+  Settings, Cpu, LogOut, History, Receipt, Network, Satellite, Brain, MapPin, Users,
   type LucideIcon,
 } from "lucide-react";
 import {
@@ -15,6 +15,7 @@ type NavItem = { title: string; url: string; icon: LucideIcon; tint: string; rin
 
 const mainItems: NavItem[] = [
   { title: "ড্যাশবোর্ড",        url: "/app",      icon: LayoutDashboard, tint: "from-emerald-500 to-teal-500",   ring: "shadow-emerald-500/40" },
+  { title: "কৃষক ও আবেদন",      url: "/farmers",  icon: Users,           tint: "from-cyan-500 to-blue-600",      ring: "shadow-cyan-500/40" },
   { title: "জমির মানচিত্র",     url: "/map",      icon: Map,             tint: "from-lime-500 to-green-600",     ring: "shadow-lime-500/40" },
   { title: "GPS স্যাটেলাইট",    url: "/gps",      icon: MapPin,          tint: "from-rose-500 to-pink-600",      ring: "shadow-rose-500/40" },
   { title: "সেচ জোন",           url: "/zones",    icon: Droplets,        tint: "from-sky-500 to-cyan-500",       ring: "shadow-sky-500/40" },

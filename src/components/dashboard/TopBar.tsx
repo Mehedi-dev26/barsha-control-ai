@@ -17,6 +17,7 @@ const ROUTE_LABEL: Record<string, string> = {
   "/zones": "সেচ জোন",
   "/motor": "মোটর নিয়ন্ত্রণ",
   "/devices": "ডিভাইস নেটওয়ার্ক",
+  "/farmers": "কৃষক ও আবেদন",
   "/hardware": "হার্ডওয়্যার গাইড",
   "/ai": "AI পরামর্শ",
   "/forecast": "ML পূর্বাভাস",

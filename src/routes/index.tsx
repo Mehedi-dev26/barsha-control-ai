@@ -65,8 +65,8 @@ function Landing() {
             <a href="#tech" className="text-muted-foreground hover:text-foreground transition">প্রযুক্তি</a>
             <a href="#about" className="text-muted-foreground hover:text-foreground transition">প্রকল্প</a>
           </nav>
-          <Link to="/auth" className="h-10 px-4 sm:px-5 shrink-0 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white text-sm font-bold inline-flex items-center gap-1.5 shadow-lg shadow-orange-500/30 hover:shadow-xl hover:scale-[1.02] transition">
-            মেইন প্যানেল Access <ArrowRight className="h-3.5 w-3.5" />
+          <Link to="/auth" className="h-10 px-4 sm:px-5 shrink-0 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white text-sm font-bold inline-flex items-center gap-1.5 shadow-lg shadow-emerald-500/30 hover:shadow-xl hover:scale-[1.02] transition">
+            লগইন <ArrowRight className="h-3.5 w-3.5" />
           </Link>
 
         </div>
@@ -103,10 +103,13 @@ function Landing() {
           </p>
 
           <div className="mt-7 sm:mt-8 flex flex-col sm:flex-row flex-wrap items-stretch sm:items-center justify-center gap-3 px-4 sm:px-0">
-            <Link to="/auth" className="h-12 px-7 rounded-xl bg-gradient-to-r from-amber-400 via-orange-500 to-rose-500 text-white font-bold text-sm shadow-xl shadow-orange-900/40 hover:shadow-2xl hover:scale-[1.02] transition inline-flex items-center justify-center gap-2">
-              Main Panel-এ প্রবেশ করুন <ArrowRight className="h-4 w-4" />
+            <Link to="/auth" className="h-12 px-7 rounded-xl bg-gradient-to-r from-emerald-500 via-teal-500 to-cyan-500 text-white font-bold text-sm shadow-xl shadow-emerald-900/40 hover:shadow-2xl hover:scale-[1.02] transition inline-flex items-center justify-center gap-2">
+              <Sprout className="h-4 w-4" /> কৃষক প্যানেল / লগইন <ArrowRight className="h-4 w-4" />
             </Link>
-            <a href="#features" className="h-12 px-6 rounded-xl border-2 border-white/60 bg-white/15 backdrop-blur-md font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-white/25 hover:border-white/80 transition text-white">
+            <Link to="/auth" className="h-12 px-6 rounded-xl border border-white/40 bg-white/10 backdrop-blur-md font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-white/20 transition text-white">
+              মেইন প্যানেল (অ্যাডমিন)
+            </Link>
+            <a href="#features" className="h-12 px-6 rounded-xl border border-white/20 bg-white/5 backdrop-blur-md font-semibold text-sm inline-flex items-center justify-center gap-2 hover:bg-white/15 transition text-white">
               <PlayCircle className="h-4 w-4" /> ডেমো দেখুন
             </a>
           </div>
