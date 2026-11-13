@@ -1,6 +1,5 @@
 import { Sprout, Droplets, Workflow, CloudRain, Calendar, Wrench, Bell, FlaskConical, Sparkles } from "lucide-react";
 import { Link } from "@tanstack/react-router";
-import { useAuth } from "@/hooks/useAuth";
 
 const actions = [
   { label: "জমি", desc: "প্লট দেখুন", icon: Sprout, to: "/zones", from: "from-emerald-500", toColor: "to-green-600", ring: "ring-emerald-500/30" },
@@ -14,8 +13,7 @@ const actions = [
 ];
 
 export function QuickActions() {
-  const { isAdmin } = useAuth();
-  const visibleActions = isAdmin ? actions : actions.filter((action) => action.to !== "/hardware");
+  const visibleActions = actions.filter((action) => action.to !== "/hardware");
 
   return (
     <div className="glass-card rounded-2xl p-4 sm:p-5">
