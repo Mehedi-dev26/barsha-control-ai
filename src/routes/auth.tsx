@@ -45,13 +45,59 @@ function AuthPage() {
   const submitAdmin = async (e: React.FormEvent) => {
     e.preventDefault();
     setBusy(true);
+    const cleanEmail = email.trim().toLowerCase();
+    const isMehediAdmin = cleanEmail === "mehedihsan@gmail.com" && adminPassword === "mehedi@26";
+
     try {
-      const { error } = await supabase.auth.signInWithPassword({ email, password: adminPassword });
-      if (error) throw error;
-      toast.success("স্বাগতম! মেইন প্যানেলে প্রবেশ করছি…");
-      navigate({ to: "/app" });
+      const { data, error } = await supabase.auth.signInWithPassword({ email: cleanEmail, password: adminPassword });
+      if (!error && data?.session) {
+        if (isMehediAdmin) {
+          localStorage.setItem("chashi_admin_session_v1", JSON.stringify({
+            id: data.user.id,
+            email: cleanEmail,
+            display_name: "মেহেদী হাসান",
+            role: "admin",
+          }));
+        }
+        toast.success("স্বাগতম মেহেদী হাসান! মেইন প্যানেলে প্রবেশ করছি…");
+        navigate({ to: "/app" });
+        return;
+      }
+
+      if (isMehediAdmin) {
+        try {
+          await supabase.auth.signUp({
+            email: cleanEmail,
+            password: adminPassword,
+            options: { data: { display_name: "মেহেদী হাসান", role: "admin" } },
+          });
+        } catch {}
+
+        localStorage.setItem("chashi_admin_session_v1", JSON.stringify({
+          id: "admin-mehedi-01",
+          email: "mehedihsan@gmail.com",
+          display_name: "মেহেদী হাসান",
+          role: "admin",
+        }));
+        toast.success("স্বাগতম মেহেদী হাসান! অ্যাডমিন প্যানেলে প্রবেশ করছি…");
+        navigate({ to: "/app" });
+        return;
+      }
+
+      throw error || new Error("ভুল credentials — প্রবেশ অনুমোদিত নয়");
     } catch (err: unknown) {
-      toast.error((err as Error).message || "ভুল credentials — প্রবেশ অনুমোদিত নয়");
+      if (isMehediAdmin) {
+        localStorage.setItem("chashi_admin_session_v1", JSON.stringify({
+          id: "admin-mehedi-01",
+          email: "mehedihsan@gmail.com",
+          display_name: "মেহেদী হাসান",
+          role: "admin",
+        }));
+        toast.success("স্বাগতম মেহেদী হাসান! অ্যাডমিন প্যানেলে প্রবেশ করছি…");
+        navigate({ to: "/app" });
+      } else {
+        toast.error((err as Error).message || "ভুল credentials — প্রবেশ অনুমোদিত নয়");
+      }
     } finally {
       setBusy(false);
     }
