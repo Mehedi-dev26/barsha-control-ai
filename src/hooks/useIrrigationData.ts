@@ -361,12 +361,12 @@ export const assignNodeToField = async (deviceId: string, zoneId: string | null)
 };
 
 
-const toggleValve = async (id: string) => {
+export const toggleValve = async (id: string, explicitState?: boolean) => {
   const zone = state.zones.find((z) => z.id === id);
   if (!zone) return;
   if (!zone.hasNode) { toast.error(`${id}-এ কোনো sub-node সংযুক্ত নেই — Devices পেজ থেকে assign করুন`); return; }
   if (!zone.online) { toast.error(`${id}-এর sub-node অফলাইন — ভাল্ভ নিয়ন্ত্রণ করা যাবে না`); return; }
-  const target = !zone.valveOpen;
+  const target = explicitState !== undefined ? explicitState : !zone.valveOpen;
   const deviceId = zone.valveNodeId!;
   const { data: u } = await supabase.auth.getUser();
   const { error } = await supabase.from("device_commands").insert({
@@ -381,9 +381,9 @@ const toggleValve = async (id: string) => {
   pushActivity({ type: target ? "success" : "info", message: `${id} ভাল্ভ ${target ? "খোলা" : "বন্ধ"} (কমান্ড পাঠানো হয়েছে)` });
 };
 
-const toggleMotor = async () => {
+export const toggleMotor = async (explicitState?: boolean) => {
   if (!state.motor.online) { toast.error("পাম্প অফলাইন — হার্ডওয়্যার সংযোগ ছাড়া চালু করা যাবে না"); return; }
-  const target = !state.motor.isOn;
+  const target = explicitState !== undefined ? explicitState : !state.motor.isOn;
   // ⚡ Optimistic UI — flip immediately so the dashboard reacts within ~100ms
   setState({ ...state, motor: { ...state.motor, isOn: target } });
   const { data: u } = await supabase.auth.getUser();
